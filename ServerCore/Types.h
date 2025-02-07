@@ -20,6 +20,8 @@ using UniqueLock = std::unique_lock<std::mutex>;
 using LockGuard = std::lock_guard<std::mutex>;
 
 // shared_ptr
+#define USING_SHARED_PTR(name)	using name##Ref = std::shared_ptr<class name>;
+
 using IocpCoreRef				= std::shared_ptr<class IocpCore>;
 using IocpObjectRef				= std::shared_ptr<class IocpObject>;
 using SessionRef				= std::shared_ptr<class Session>;

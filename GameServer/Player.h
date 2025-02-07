@@ -1,11 +1,18 @@
 #pragma once
 
-class Player
+class GameSession;
+class Room;
+
+class Player : public enable_shared_from_this<Player>
 {
 public:
-	uint64					playerId = 0;
-	string					name;
-	Protocol::PlayerType	type = Protocol::PlayerType::PLAYER_TYPE_NONE;
-	GameSessionRef			OwnerSession;
-};
+	Player();
+	virtual ~Player();
 
+public:
+	Protocol::PlayerInfo* playerInfo;
+	weak_ptr<GameSession> session;
+
+public:
+	atomic<weak_ptr<Room>> room;
+};
