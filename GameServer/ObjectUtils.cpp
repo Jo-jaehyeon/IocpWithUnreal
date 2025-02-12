@@ -16,5 +16,5 @@ PlayerRef ObjectUtils::CreatePlayer(GameSessionRef session)
 	player->session = session;
 	session->player.store(player);
 
-	return PlayerRef();
+	return player;
 }

@@ -40,6 +40,64 @@ bool Room::HandleEnterPlayerLocked(PlayerRef player)
 	}
 
 	// 입장 사실을 다른 플레이어에게 알린다
+	{
+		Protocol::S_SPAWN spawnPkt;
+
+		Protocol::PlayerInfo* playerInfo = spawnPkt.add_player();
+		playerInfo->CopyFrom(*player->playerInfo);
+
+		SendBufferRef sendBuffer = ClientPacketHandler::MakeSendBuffer(spawnPkt);
+		Broadcast(sendBuffer, player->playerInfo->object_id());
+	}
+
+	// 기존 입장한 플레이어 목록을 신입 플레이어한테 전송해준다
+	{
+		Protocol::S_SPAWN spawnPkt;
+
+		for (auto& item : _players)
+		{
+			Protocol::PlayerInfo* playerInfo = spawnPkt.add_player();
+			playerInfo->CopyFrom(*item.second->playerInfo);
+		}
+
+		SendBufferRef sendBuffer = ClientPacketHandler::MakeSendBuffer(spawnPkt);
+		if (auto session = player->session.lock())
+			session->Send(sendBuffer);
+	}
+
+	return success;
+}
+
+bool Room::HandleLeavePlayerLocked(PlayerRef player)
+{
+	if (player == nullptr)
+		return false;
+
+	WRITE_LOCK;
+
+	const uint64 objectId = player->playerInfo->object_id();
+	bool success = LeavePlayer(objectId);
+
+	// 퇴장 사실을 신입 플레이어에게 알린다
+	{
+		Protocol::S_LEAVE_GAME leaveGamePkt;
+
+		SendBufferRef sendBuffer = ClientPacketHandler::MakeSendBuffer(leaveGamePkt);
+		if (auto session = player->session.lock())
+			session->Send(sendBuffer);
+	}
+
+	// 퇴장 사실을 알린다
+	{
+		Protocol::S_DESPAWN despawnPkt;
+		despawnPkt.add_object_ids(objectId);
+
+		SendBufferRef sendBuffer = ClientPacketHandler::MakeSendBuffer(despawnPkt);
+		Broadcast(sendBuffer, objectId);
+
+		if (auto session = player->session.lock())
+			session->Send(sendBuffer);
+	}
 
 	return success;
 }
@@ -55,4 +113,31 @@ bool Room::EnterPlayer(PlayerRef player)
 	player->room.store(shared_from_this());
 
 	return true;
+}
+
+bool Room::LeavePlayer(uint64 objectId)
+{
+	// 없다면 문제가 있다
+	if (_players.find(objectId) == _players.end())
+		return false;
+
+	PlayerRef player = _players[objectId];
+	player->room.store(weak_ptr<Room>());
+
+	_players.erase(objectId);
+
+	return true;
+}
+
+void Room::Broadcast(SendBufferRef sendBuffer, uint64 exceptId)
+{
+	for (auto& item : _players)
+	{
+		PlayerRef player = item.second;
+		if (player->playerInfo->object_id() == exceptId)
+			continue;
+
+		if (GameSessionRef session = player->session.lock())
+			session->Send(sendBuffer);
+	}
 }

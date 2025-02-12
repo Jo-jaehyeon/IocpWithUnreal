@@ -34,7 +34,6 @@ void Session::Send(SendBufferRef sendBuffer)
 	
 		if (registerSend)
 			RegisterSend();
-	
 	}
 
 }
