@@ -21,7 +21,7 @@ bool Room::HandleEnterPlayerLocked(PlayerRef player)
 	// 랜덤 위치
 	player->playerInfo->set_x(Utils::GetRandom(0.f, 500.f));
 	player->playerInfo->set_y(Utils::GetRandom(0.f, 500.f));
-	player->playerInfo->set_z(Utils::GetRandom(0.f, 500.f));
+	player->playerInfo->set_z(100.f);		// 공중 부양 방지
 	player->playerInfo->set_yaw(Utils::GetRandom(0.f, 500.f));
 
 	// 입장 사실을 신입 플레이어에게 알린다
@@ -100,6 +100,34 @@ bool Room::HandleLeavePlayerLocked(PlayerRef player)
 	}
 
 	return success;
+}
+
+void Room::HandleMoveLocked(Protocol::C_MOVE& pkt)
+{
+	WRITE_LOCK;
+
+	const uint64 objectId = pkt.info().object_id();
+	if (_players.find(objectId) == _players.end())
+		return;
+
+	// TODO 해당 세션을 통해 들어온 플레이어 id가 맞는지 체크
+	// 해킹 방지를 위해
+
+	// 적용
+	PlayerRef& player = _players[objectId];
+	player->playerInfo->CopyFrom(pkt.info());
+
+	// 이동(좌표가 말이 되는지 체크 필요)
+	{
+		Protocol::S_MOVE movePkt;
+		{
+			Protocol::PlayerInfo* info = movePkt.mutable_info();
+			info->CopyFrom(pkt.info());
+		}
+
+		SendBufferRef sendBuffer = ClientPacketHandler::MakeSendBuffer(movePkt);
+		Broadcast(sendBuffer);
+	}
 }
 
 bool Room::EnterPlayer(PlayerRef player)
