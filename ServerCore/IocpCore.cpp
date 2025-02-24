@@ -2,10 +2,10 @@
 #include "IocpCore.h"
 #include "IocpEvent.h"
 
-
 /*--------------
 	IocpCore
---------------*/
+---------------*/
+
 IocpCore::IocpCore()
 {
 	_iocpHandle = ::CreateIoCompletionPort(INVALID_HANDLE_VALUE, 0, 0, 0);
@@ -24,12 +24,11 @@ bool IocpCore::Register(IocpObjectRef iocpObject)
 
 bool IocpCore::Dispatch(uint32 timeoutMs)
 {
-	// WorkerThread용 함수
 	DWORD numOfBytes = 0;
-	IocpObject* iocpObject = nullptr;
+	ULONG_PTR key = 0;	
 	IocpEvent* iocpEvent = nullptr;
 
-	if (::GetQueuedCompletionStatus(_iocpHandle, OUT &numOfBytes, OUT reinterpret_cast<PULONG_PTR>(&iocpObject), OUT reinterpret_cast<LPOVERLAPPED*>(&iocpEvent), timeoutMs))
+	if (::GetQueuedCompletionStatus(_iocpHandle, OUT &numOfBytes, OUT &key, OUT reinterpret_cast<LPOVERLAPPED*>(&iocpEvent), timeoutMs))
 	{
 		IocpObjectRef iocpObject = iocpEvent->owner;
 		iocpObject->Dispatch(iocpEvent, numOfBytes);
@@ -42,7 +41,7 @@ bool IocpCore::Dispatch(uint32 timeoutMs)
 		case WAIT_TIMEOUT:
 			return false;
 		default:
-			// TODO 로그
+			// TODO : 로그 찍기
 			IocpObjectRef iocpObject = iocpEvent->owner;
 			iocpObject->Dispatch(iocpEvent, numOfBytes);
 			break;

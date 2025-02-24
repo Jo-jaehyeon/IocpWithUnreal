@@ -16,3 +16,4 @@ public:
 public:
 	atomic<weak_ptr<Room>> room;
 };
+

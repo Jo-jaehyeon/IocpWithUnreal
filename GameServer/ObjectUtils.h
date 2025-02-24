@@ -2,7 +2,7 @@
 
 class ObjectUtils
 {
-public: 
+public:
 	static PlayerRef CreatePlayer(GameSessionRef session);
 
 private:

@@ -1,15 +1,18 @@
 #include "pch.h"
 #include "Room.h"
 #include "Player.h"
+#include "GameSession.h"
 
 RoomRef GRoom = make_shared<Room>();
 
 Room::Room()
 {
+
 }
 
 Room::~Room()
 {
+
 }
 
 bool Room::HandleEnterPlayerLocked(PlayerRef player)
@@ -21,8 +24,8 @@ bool Room::HandleEnterPlayerLocked(PlayerRef player)
 	// 랜덤 위치
 	player->playerInfo->set_x(Utils::GetRandom(0.f, 500.f));
 	player->playerInfo->set_y(Utils::GetRandom(0.f, 500.f));
-	player->playerInfo->set_z(100.f);		// 공중 부양 방지
-	player->playerInfo->set_yaw(Utils::GetRandom(0.f, 500.f));
+	player->playerInfo->set_z(100.f);
+	player->playerInfo->set_yaw(Utils::GetRandom(0.f, 100.f));
 
 	// 입장 사실을 신입 플레이어에게 알린다
 	{
@@ -32,9 +35,9 @@ bool Room::HandleEnterPlayerLocked(PlayerRef player)
 		Protocol::PlayerInfo* playerInfo = new Protocol::PlayerInfo();
 		playerInfo->CopyFrom(*player->playerInfo);
 		enterGamePkt.set_allocated_player(playerInfo);
-		//enterGamePkt.release_player();  <- playerinfo를 바로 꽂아버린 경우
+		//enterGamePkt.release_player();
 
-		SendBufferRef sendBuffer = ClientPacketHandler::MakeSendBuffer(enterGamePkt);
+		SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(enterGamePkt);
 		if (auto session = player->session.lock())
 			session->Send(sendBuffer);
 	}
@@ -46,7 +49,7 @@ bool Room::HandleEnterPlayerLocked(PlayerRef player)
 		Protocol::PlayerInfo* playerInfo = spawnPkt.add_player();
 		playerInfo->CopyFrom(*player->playerInfo);
 
-		SendBufferRef sendBuffer = ClientPacketHandler::MakeSendBuffer(spawnPkt);
+		SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(spawnPkt);
 		Broadcast(sendBuffer, player->playerInfo->object_id());
 	}
 
@@ -60,13 +63,14 @@ bool Room::HandleEnterPlayerLocked(PlayerRef player)
 			playerInfo->CopyFrom(*item.second->playerInfo);
 		}
 
-		SendBufferRef sendBuffer = ClientPacketHandler::MakeSendBuffer(spawnPkt);
+		SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(spawnPkt);
 		if (auto session = player->session.lock())
 			session->Send(sendBuffer);
 	}
 
 	return success;
 }
+
 
 bool Room::HandleLeavePlayerLocked(PlayerRef player)
 {
@@ -78,11 +82,11 @@ bool Room::HandleLeavePlayerLocked(PlayerRef player)
 	const uint64 objectId = player->playerInfo->object_id();
 	bool success = LeavePlayer(objectId);
 
-	// 퇴장 사실을 신입 플레이어에게 알린다
+	// 퇴장 사실을 퇴장하는 플레이어에게 알린다
 	{
 		Protocol::S_LEAVE_GAME leaveGamePkt;
 
-		SendBufferRef sendBuffer = ClientPacketHandler::MakeSendBuffer(leaveGamePkt);
+		SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(leaveGamePkt);
 		if (auto session = player->session.lock())
 			session->Send(sendBuffer);
 	}
@@ -92,7 +96,7 @@ bool Room::HandleLeavePlayerLocked(PlayerRef player)
 		Protocol::S_DESPAWN despawnPkt;
 		despawnPkt.add_object_ids(objectId);
 
-		SendBufferRef sendBuffer = ClientPacketHandler::MakeSendBuffer(despawnPkt);
+		SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(despawnPkt);
 		Broadcast(sendBuffer, objectId);
 
 		if (auto session = player->session.lock())
@@ -110,14 +114,11 @@ void Room::HandleMoveLocked(Protocol::C_MOVE& pkt)
 	if (_players.find(objectId) == _players.end())
 		return;
 
-	// TODO 해당 세션을 통해 들어온 플레이어 id가 맞는지 체크
-	// 해킹 방지를 위해
-
 	// 적용
 	PlayerRef& player = _players[objectId];
 	player->playerInfo->CopyFrom(pkt.info());
 
-	// 이동(좌표가 말이 되는지 체크 필요)
+	// 이동 
 	{
 		Protocol::S_MOVE movePkt;
 		{
@@ -125,27 +126,28 @@ void Room::HandleMoveLocked(Protocol::C_MOVE& pkt)
 			info->CopyFrom(pkt.info());
 		}
 
-		SendBufferRef sendBuffer = ClientPacketHandler::MakeSendBuffer(movePkt);
+		SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(movePkt);
 		Broadcast(sendBuffer);
 	}
 }
 
 bool Room::EnterPlayer(PlayerRef player)
 {
-	// 있다면 문제가 있다
+	// 있다면 문제가 있다.
 	if (_players.find(player->playerInfo->object_id()) != _players.end())
 		return false;
 
 	_players.insert(make_pair(player->playerInfo->object_id(), player));
-
+	
 	player->room.store(shared_from_this());
 
 	return true;
 }
 
+
 bool Room::LeavePlayer(uint64 objectId)
 {
-	// 없다면 문제가 있다
+	// 없다면 문제가 있다.
 	if (_players.find(objectId) == _players.end())
 		return false;
 

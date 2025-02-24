@@ -3,6 +3,7 @@
 #include "NetAddress.h"
 
 class AcceptEvent;
+class ServerService;
 
 /*--------------
 	Listener
@@ -30,8 +31,8 @@ private:
 	void ProcessAccept(AcceptEvent* acceptEvent);
 
 protected:
-	SOCKET					_socket = INVALID_SOCKET;
-	Vector<AcceptEvent*>	_acceptEvents;
-	ServerServiceRef		_service;
+	SOCKET _socket = INVALID_SOCKET;
+	vector<AcceptEvent*> _acceptEvents;
+	ServerServiceRef _service;
 };
 

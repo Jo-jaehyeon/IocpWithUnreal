@@ -1,10 +1,16 @@
 #include "pch.h"
 #include "Service.h"
 #include "Session.h"
+#include "Listener.h"
 
-Service::Service(ServiceType type, NetAddress netAddress, IocpCoreRef core, SessionFactory factory, int32 maxSessionCount)
-	:_type(type), _netAddress(netAddress), _iocpCore(core), _sessionFactory(factory), _maxSessionCount(maxSessionCount)
+/*-------------
+	Service
+--------------*/
+
+Service::Service(ServiceType type, NetAddress address, IocpCoreRef core, SessionFactory factory, int32 maxSessionCount)
+	: _type(type), _netAddress(address), _iocpCore(core), _sessionFactory(factory), _maxSessionCount(maxSessionCount)
 {
+
 }
 
 Service::~Service()
@@ -14,10 +20,6 @@ Service::~Service()
 void Service::CloseService()
 {
 	// TODO
-}
-
-void Service::SetSessionFactory()
-{
 }
 
 void Service::Broadcast(SendBufferRef sendBuffer)
@@ -31,13 +33,13 @@ void Service::Broadcast(SendBufferRef sendBuffer)
 
 SessionRef Service::CreateSession()
 {
-	SessionRef Session = _sessionFactory();
-	Session->SetService(shared_from_this());
+	SessionRef session = _sessionFactory();
+	session->SetService(shared_from_this());
 
-	if (_iocpCore->Register(Session) == false)
+	if (_iocpCore->Register(session) == false)
 		return nullptr;
 
-	return Session;
+	return session;
 }
 
 void Service::AddSession(SessionRef session)
@@ -47,18 +49,19 @@ void Service::AddSession(SessionRef session)
 	_sessions.insert(session);
 }
 
-void Service::ReleaSession(SessionRef session)
+void Service::ReleaseSession(SessionRef session)
 {
 	WRITE_LOCK;
 	ASSERT_CRASH(_sessions.erase(session) != 0);
 	_sessionCount--;
 }
 
-/*----------------------
-	  ClientService
-----------------------*/
-ClientService::ClientService(NetAddress netAddress, IocpCoreRef core, SessionFactory factory, int32 maxSessionCount)
-	: Service(ServiceType::Client, netAddress, core, factory, maxSessionCount)
+/*-----------------
+	ClientService
+------------------*/
+
+ClientService::ClientService(NetAddress targetAddress, IocpCoreRef core, SessionFactory factory, int32 maxSessionCount)
+	: Service(ServiceType::Client, targetAddress, core, factory, maxSessionCount)
 {
 }
 
@@ -68,22 +71,18 @@ bool ClientService::Start()
 		return false;
 
 	const int32 sessionCount = GetMaxSessionCount();
-
 	for (int32 i = 0; i < sessionCount; i++)
 	{
 		SessionRef session = CreateSession();
 		if (session->Connect() == false)
 			return false;
 	}
-	
+
 	return true;
 }
 
-/*----------------------
-	  ServerService
-----------------------*/
-ServerService::ServerService(NetAddress netAddress, IocpCoreRef core, SessionFactory factory, int32 maxSessionCount)
-	: Service(ServiceType::Server, netAddress, core, factory, maxSessionCount)
+ServerService::ServerService(NetAddress address, IocpCoreRef core, SessionFactory factory, int32 maxSessionCount)
+	: Service(ServiceType::Server, address, core, factory, maxSessionCount)
 {
 }
 
@@ -91,18 +90,21 @@ bool ServerService::Start()
 {
 	if (CanStart() == false)
 		return false;
-	
-	_listener = MakeShared<Listener>();
+
+	_listener = make_shared<Listener>();
 	if (_listener == nullptr)
 		return false;
 
 	ServerServiceRef service = static_pointer_cast<ServerService>(shared_from_this());
 	if (_listener->StartAccept(service) == false)
 		return false;
-	
+
 	return true;
 }
 
 void ServerService::CloseService()
 {
+	// TODO
+
+	Service::CloseService();
 }

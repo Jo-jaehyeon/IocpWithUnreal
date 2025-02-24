@@ -17,7 +17,7 @@ Listener::~Listener()
 	{
 		// TODO
 
-		xdelete(acceptEvent);
+		delete(acceptEvent);
 	}
 }
 
@@ -30,10 +30,10 @@ bool Listener::StartAccept(ServerServiceRef service)
 	_socket = SocketUtils::CreateSocket();
 	if (_socket == INVALID_SOCKET)
 		return false;
-	
+
 	if (_service->GetIocpCore()->Register(shared_from_this()) == false)
 		return false;
-	
+
 	if (SocketUtils::SetReuseAddress(_socket, true) == false)
 		return false;
 
@@ -49,7 +49,7 @@ bool Listener::StartAccept(ServerServiceRef service)
 	const int32 acceptCount = _service->GetMaxSessionCount();
 	for (int32 i = 0; i < acceptCount; i++)
 	{
-		AcceptEvent* acceptEvent = xnew<AcceptEvent>();
+		AcceptEvent* acceptEvent = new AcceptEvent();
 		acceptEvent->owner = shared_from_this();
 		_acceptEvents.push_back(acceptEvent);
 		RegisterAccept(acceptEvent);
@@ -70,19 +70,18 @@ HANDLE Listener::GetHandle()
 
 void Listener::Dispatch(IocpEvent* iocpEvent, int32 numOfBytes)
 {
-	ASSERT_CRASH(iocpEvent->GetType() == EventType::Accept);
+	ASSERT_CRASH(iocpEvent->eventType == EventType::Accept);
 	AcceptEvent* acceptEvent = static_cast<AcceptEvent*>(iocpEvent);
 	ProcessAccept(acceptEvent);
 }
 
 void Listener::RegisterAccept(AcceptEvent* acceptEvent)
 {
-	SessionRef session = _service->CreateSession();
+	SessionRef session = _service->CreateSession(); // Register IOCP
 
-	// Session ¿¬µ¿
 	acceptEvent->Init();
 	acceptEvent->session = session;
-	
+
 	DWORD bytesReceived = 0;
 	if (false == SocketUtils::AcceptEx(_socket, session->GetSocket(), session->_recvBuffer.WritePos(), 0, sizeof(SOCKADDR_IN) + 16, sizeof(SOCKADDR_IN) + 16, OUT & bytesReceived, static_cast<LPOVERLAPPED>(acceptEvent)))
 	{

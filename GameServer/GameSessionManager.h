@@ -1,6 +1,7 @@
 #pragma once
 
 class GameSession;
+
 using GameSessionRef = shared_ptr<GameSession>;
 
 class GameSessionManager
@@ -12,7 +13,7 @@ public:
 
 private:
 	USE_LOCK;
-	Set<GameSessionRef> _sessions;
+	set<GameSessionRef> _sessions;
 };
 
 extern GameSessionManager GSessionManager;

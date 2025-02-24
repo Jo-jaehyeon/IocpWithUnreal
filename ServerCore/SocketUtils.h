@@ -1,14 +1,13 @@
 #pragma once
 #include "NetAddress.h"
 
-/*---------------
+/*----------------
 	SocketUtils
-----------------*/
+-----------------*/
+
 class SocketUtils
 {
 public:
-	// Function Pointer
-	// 비동기의 connect, disconnect, accept는 그대로 사용 못함
 	static LPFN_CONNECTEX		ConnectEx;
 	static LPFN_DISCONNECTEX	DisconnectEx;
 	static LPFN_ACCEPTEX		AcceptEx;
@@ -20,7 +19,6 @@ public:
 	static bool BindWindowsFunction(SOCKET socket, GUID guid, LPVOID* fn);
 	static SOCKET CreateSocket();
 
-	// Socket Option
 	static bool SetLinger(SOCKET socket, uint16 onoff, uint16 linger);
 	static bool SetReuseAddress(SOCKET socket, bool flag);
 	static bool SetRecvBufferSize(SOCKET socket, int32 size);
@@ -39,4 +37,3 @@ static inline bool SetSockOpt(SOCKET socket, int32 level, int32 optName, T optVa
 {
 	return SOCKET_ERROR != ::setsockopt(socket, level, optName, reinterpret_cast<char*>(&optVal), sizeof(T));
 }
-
