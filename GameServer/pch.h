@@ -15,7 +15,7 @@
 #include "Protocol.pb.h"
 #include "Enum.pb.h"
 #include "Struct.pb.h"
-#include "ServerPacketHandler.h"
+#include "ClientPacketHandler.h"
 #include "Utils.h"
 #include "GameSession.h"
 
@@ -24,5 +24,5 @@ USING_SHARED_PTR(Player);
 USING_SHARED_PTR(Room);
 
 #define SEND_PACKET(pkt)													\
-	SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(pkt);	\
+	SendBufferRef sendBuffer = ClientPacketHandler::MakeSendBuffer(pkt);	\
 	session->Send(sendBuffer);

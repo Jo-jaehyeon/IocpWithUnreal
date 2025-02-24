@@ -37,7 +37,7 @@ bool Room::HandleEnterPlayerLocked(PlayerRef player)
 		enterGamePkt.set_allocated_player(playerInfo);
 		//enterGamePkt.release_player();
 
-		SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(enterGamePkt);
+		SendBufferRef sendBuffer = ClientPacketHandler::MakeSendBuffer(enterGamePkt);
 		if (auto session = player->session.lock())
 			session->Send(sendBuffer);
 	}
@@ -49,7 +49,7 @@ bool Room::HandleEnterPlayerLocked(PlayerRef player)
 		Protocol::PlayerInfo* playerInfo = spawnPkt.add_player();
 		playerInfo->CopyFrom(*player->playerInfo);
 
-		SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(spawnPkt);
+		SendBufferRef sendBuffer = ClientPacketHandler::MakeSendBuffer(spawnPkt);
 		Broadcast(sendBuffer, player->playerInfo->object_id());
 	}
 
@@ -63,7 +63,7 @@ bool Room::HandleEnterPlayerLocked(PlayerRef player)
 			playerInfo->CopyFrom(*item.second->playerInfo);
 		}
 
-		SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(spawnPkt);
+		SendBufferRef sendBuffer = ClientPacketHandler::MakeSendBuffer(spawnPkt);
 		if (auto session = player->session.lock())
 			session->Send(sendBuffer);
 	}
@@ -86,7 +86,7 @@ bool Room::HandleLeavePlayerLocked(PlayerRef player)
 	{
 		Protocol::S_LEAVE_GAME leaveGamePkt;
 
-		SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(leaveGamePkt);
+		SendBufferRef sendBuffer = ClientPacketHandler::MakeSendBuffer(leaveGamePkt);
 		if (auto session = player->session.lock())
 			session->Send(sendBuffer);
 	}
@@ -96,7 +96,7 @@ bool Room::HandleLeavePlayerLocked(PlayerRef player)
 		Protocol::S_DESPAWN despawnPkt;
 		despawnPkt.add_object_ids(objectId);
 
-		SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(despawnPkt);
+		SendBufferRef sendBuffer = ClientPacketHandler::MakeSendBuffer(despawnPkt);
 		Broadcast(sendBuffer, objectId);
 
 		if (auto session = player->session.lock())
@@ -126,7 +126,7 @@ void Room::HandleMoveLocked(Protocol::C_MOVE& pkt)
 			info->CopyFrom(pkt.info());
 		}
 
-		SendBufferRef sendBuffer = ServerPacketHandler::MakeSendBuffer(movePkt);
+		SendBufferRef sendBuffer = ClientPacketHandler::MakeSendBuffer(movePkt);
 		Broadcast(sendBuffer);
 	}
 }
