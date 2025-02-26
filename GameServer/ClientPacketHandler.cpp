@@ -22,11 +22,13 @@ bool Handle_C_LOGIN(PacketSessionRef& session, Protocol::C_LOGIN& pkt)
 
 	for (int32 i = 0; i < 3; i++)
 	{
-		Protocol::PlayerInfo* player = loginPkt.add_players();
-		player->set_x(Utils::GetRandom(0.f, 100.f));
-		player->set_y(Utils::GetRandom(0.f, 100.f));
-		player->set_z(Utils::GetRandom(0.f, 100.f));
-		player->set_yaw(Utils::GetRandom(0.f, 45.f));
+		Protocol::ObjectInfo* player = loginPkt.add_players();
+		Protocol::PosInfo* posInfo = player->mutable_pos_info();
+
+		posInfo->set_x(Utils::GetRandom(0.f, 100.f));
+		posInfo->set_y(Utils::GetRandom(0.f, 100.f));
+		posInfo->set_z(Utils::GetRandom(0.f, 100.f));
+		posInfo->set_yaw(Utils::GetRandom(0.f, 45.f));
 	}
 
 	loginPkt.set_success(true);
@@ -41,7 +43,8 @@ bool Handle_C_ENTER_GAME(PacketSessionRef& session, Protocol::C_ENTER_GAME& pkt)
 	PlayerRef player = ObjectUtils::CreatePlayer(static_pointer_cast<GameSession>(session));
 
 	// 방에 입장
-	GRoom->HandleEnterPlayerLocked(player);
+	GRoom->DoAsync(&Room::HandleEnterPlayer, player);
+	//GRoom->HandleEnterPlayer(player);
 
 	return true;
 }
@@ -58,7 +61,8 @@ bool Handle_C_LEAVE_GAME(PacketSessionRef& session, Protocol::C_LEAVE_GAME& pkt)
 	if (room == nullptr)
 		return false;
 
-	room->HandleLeavePlayerLocked(player);
+	GRoom->DoAsync(&Room::HandleLeavePlayer, player);
+	//room->HandleLeavePlayer(player);
 
 	return true;
 }
@@ -75,7 +79,8 @@ bool Handle_C_MOVE(PacketSessionRef& session, Protocol::C_MOVE& pkt)
 	if (room == nullptr)
 		return false;
 
-	room->HandleMoveLocked(pkt);
+	GRoom->DoAsync(&Room::HandleMove, pkt);
+	//room->HandleMove(pkt);
 
 	return true;
 }

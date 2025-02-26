@@ -20,7 +20,10 @@
 #include "GameSession.h"
 
 USING_SHARED_PTR(GameSession);
+USING_SHARED_PTR(Object);
+USING_SHARED_PTR(Creature);
 USING_SHARED_PTR(Player);
+USING_SHARED_PTR(Monster);
 USING_SHARED_PTR(Room);
 
 #define SEND_PACKET(pkt)													\
